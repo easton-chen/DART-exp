@@ -1,0 +1,291 @@
+mdp
+// init block must include values for the following constants
+const int HORIZON=5;
+const double PERIOD=1;
+const int MAX_ALT_LEVEL=10;
+const int init_a;
+const int init_f;
+const int init_ecm;
+const double IncAlt_LATENCY=1;
+const double DecAlt_LATENCY=1;
+const int ini_IncAlt_state=0;
+const int ini_DecAlt_state=0;
+const double destructionFormationFactor=1.3;
+const double threatRange=4;
+const double detectionFormationFactor=1.3;
+const double sensorRange=4;
+const double ecm_factor=1.2;
+
+const double stateValue=0.2; 	//threat
+const double stateValue1=0.8; 	//target
+
+const double targetStateProb1;
+const double targetStateProb2;
+const double targetStateProb3;
+const double targetStateProb4;
+const double targetStateProb5;
+
+const double threatStateProb1;
+const double threatStateProb2;
+const double threatStateProb3;
+const double threatStateProb4;
+const double threatStateProb5;
+
+// # init
+// ***********************
+// CLOCK
+// ***********************
+const int TO_TICK = 0;
+const int TO_TICK2 = 1; // intermediate tick for constraint satisf . update
+const int TO_TACK = 2;
+
+label "final" = time = HORIZON & clockstep=TO_TICK;
+formula sys_go = clockstep=TO_TICK;
+
+module clk
+time : [0.. HORIZON] init 0;
+clockstep : [0..2] init TO_TICK;
+
+[tick] clockstep=TO_TICK & time < HORIZON -> 1: (time'=time+1) & (clockstep'=TO_TICK2);
+[tick2] clockstep=TO_TICK2 -> 1 : (clockstep'=TO_TACK);
+[tack] clockstep=TO_TACK -> 1: (clockstep'=TO_TICK);
+endmodule
+
+
+// ***********************
+// SYSTEM
+// ***********************
+// Variable range and initialization
+const a_MIN=0; const a_MAX=MAX_ALT_LEVEL; const a_INIT=init_a;
+const f_MIN=0; const f_MAX=1; const f_INIT=init_f;  // 1 tight, 0 loose
+const ecm_INIT=init_ecm;
+
+module sys
+a : [a_MIN..a_MAX] init a_INIT;
+f : [f_MIN..f_MAX] init f_INIT;
+ecm : [0..1] init ecm_INIT;
+
+[GoTight_start] f=0 -> 1: (a'=a_GoTight_impact) & ( f'=f_GoTight_impact);
+[GoLoose_start] f=1 -> 1: (a'=a_GoLoose_impact) & ( f'=f_GoLoose_impact);
+[IncAlt_complete] a < MAX_ALT_LEVEL -> 1: (a'=a_IncAlt_impact) & ( f'= f_IncAlt_impact ) ;
+[DecAlt_complete] a > 0 -> 1: (a'=a_DecAlt_impact) & ( f'=f_DecAlt_impact);
+[TurnOnECM_start] ecm=0 -> 1: (ecm'=1);
+[TurnOffECM_start] ecm=1 -> 1: (ecm'=0);
+endmodule
+
+formula a_GoTight_impact = a + (0) >= a_MIN ? ( a+(0)<=a_MAX? a+(0) : a_MAX) : a_MIN;
+formula f_GoTight_impact = f + (1) >= f_MIN ? ( f+(1)<=f_MAX? f+(1) : f_MAX) : f_MIN;
+formula a_GoLoose_impact = a + (0) >= a_MIN ? ( a+(0)<=a_MAX? a+(0) : a_MAX) : a_MIN;
+formula f_GoLoose_impact = f + (-1) >= f_MIN ? ( f+(-1)<=f_MAX? f+(-1) : f_MAX) : f_MIN;
+formula a_IncAlt_impact = a + (1) >= a_MIN ? ( a+(1)<=a_MAX? a+(1) : a_MAX) : a_MIN;
+formula f_IncAlt_impact = f + (0) >= f_MIN ? ( f+(0)<=f_MAX? f+(0) : f_MAX) : f_MIN;
+formula a_DecAlt_impact = a + (-1) >= a_MIN ? ( a+(-1)<=a_MAX? a+(-1) : a_MAX) : a_MIN;
+formula f_DecAlt_impact = f + (0) >= f_MIN ? ( f+(0)<=f_MAX? f+(0) : f_MAX) : f_MIN;
+
+// tactic concurrency rules
+formula IncAlt_used = IncAlt_state != 0;
+formula DecAlt_used = DecAlt_state != 0;
+
+formula GoTight_compatible = !GoLoose_used;
+formula GoLoose_compatible = !GoTight_used;
+formula IncAlt_compatible = !DecAlt_used;
+formula DecAlt_compatible = !IncAlt_used;
+formula TurnOnECM_compatible = !TurnOffECM_used;
+formula TurnOffECM_compatible = !TurnOnECM_used;
+
+// ***********************
+// TACTIC: GoTight
+// ***********************
+
+// Applicability conditions
+formula GoTight_applicable = GoTight_compatible & f=0;
+
+module GoTight
+GoTight_used : bool init false;
+GoTight_go : bool init true;
+
+// Tactic applicable, start it
+[GoTight_start] sys_go & GoTight_go & GoTight_applicable -> (GoTight_used'=true) & (GoTight_go'=false);
+
+// Tactic applicable, but do not start it
+[] sys_go & GoTight_go & GoTight_applicable -> (GoTight_go'=false);
+
+// Pass if the tactic is not applicable
+[] sys_go & GoTight_go & !GoTight_applicable -> 1 : (GoTight_go'=false);
+
+[ tick ] !GoTight_go -> 1: (GoTight_go'=true) & (GoTight_used'=false);
+endmodule
+
+// ***********************
+// TACTIC: GoLoose
+// ***********************
+
+// Applicability conditions
+formula GoLoose_applicable = GoLoose_compatible & f=1;
+
+module GoLoose
+GoLoose_used : bool init false;
+GoLoose_go : bool init true;
+ // Tactic applicable, start it
+[GoLoose_start] sys_go & GoLoose_go & GoLoose_applicable -> (GoLoose_used'=true) & (GoLoose_go'=false);
+
+// Tactic applicable, but do not start it
+[] sys_go & GoLoose_go & GoLoose_applicable -> (GoLoose_go'=false);
+
+// Pass if the tactic is not applicable
+[] sys_go & GoLoose_go & !GoLoose_applicable -> 1 : (GoLoose_go'=false);
+
+[ tick ] !GoLoose_go -> 1: (GoLoose_go'=true) & (GoLoose_used'=false);
+endmodule
+
+
+// ***********************
+// TACTIC: IncAlt
+// ***********************
+
+const int IncAlt_LATENCY_PERIODS = ceil(IncAlt_LATENCY/PERIOD);
+
+// Applicability conditions
+formula IncAlt_applicable = IncAlt_compatible & a < MAX_ALT_LEVEL;
+
+module IncAlt
+IncAlt_state : [0.. IncAlt_LATENCY_PERIODS] init ini_IncAlt_state;
+IncAlt_go : bool init true;
+
+// Tactic applicable, start it
+[ IncAlt_start ] sys_go & IncAlt_go & IncAlt_state =0 & IncAlt_applicable -> (IncAlt_state'=IncAlt_LATENCY_PERIODS) & (IncAlt_go'=false);
+
+// Tactic applicable, but do not start it
+[] sys_go & IncAlt_go & IncAlt_state =0 & IncAlt_applicable -> (IncAlt_go'=false);
+
+// Pass if the tactic is not applicable
+[] sys_go & IncAlt_go & IncAlt_state =0 & ! IncAlt_applicable -> 1 : (IncAlt_go'=false);
+
+// Progress of the tactic
+[] sys_go & IncAlt_go & IncAlt_state > 1 -> 1: (IncAlt_state'= IncAlt_state -1) & (IncAlt_go'=false);
+
+// Completion of the tactic
+[IncAlt_complete] sys_go & IncAlt_go & IncAlt_state =1 -> 1: (IncAlt_state'=0) & (IncAlt_go'=true);
+
+[ tick ] !IncAlt_go -> 1: (IncAlt_go'=true);
+endmodule
+
+// ***********************
+// TACTIC: DecAlt
+// ***********************
+
+const int DecAlt_LATENCY_PERIODS = ceil(DecAlt_LATENCY/PERIOD);
+
+// Applicability conditions
+formula DecAlt_applicable = DecAlt_compatible & a > 0;
+
+module DecAlt
+DecAlt_state : [0.. DecAlt_LATENCY_PERIODS] init ini_DecAlt_state;
+DecAlt_go : bool init true;
+
+// Tactic applicable, start it
+[DecAlt_start ] sys_go & DecAlt_go & DecAlt_state=0 & DecAlt_applicable -> (DecAlt_state'=DecAlt_LATENCY_PERIODS) & (DecAlt_go'=false);
+
+// Tactic applicable, but do not start it
+[] sys_go & DecAlt_go & DecAlt_state=0 & DecAlt_applicable -> (DecAlt_go'=false);
+
+// Pass if the tactic is not applicable
+[] sys_go & DecAlt_go & DecAlt_state=0 & !DecAlt_applicable -> 1 : (DecAlt_go'=false);
+
+// Progress of the tactic
+[] sys_go & DecAlt_go & DecAlt_state > 1 -> 1: (DecAlt_state'=DecAlt_state-1) & (DecAlt_go'=false);
+
+// Completion of the tactic
+[DecAlt_complete] sys_go & DecAlt_go & DecAlt_state=1 -> 1: (DecAlt_state'=0) & (DecAlt_go'=true);
+[ tick ] !DecAlt_go -> 1: (DecAlt_go'=true);
+endmodule
+
+// ***********************
+// TACTIC: TurnOnECM
+// ***********************
+formula TurnOnECM_applicable = TurnOnECM_compatible & ecm=0;
+module TurnOnECM
+TurnOnECM_used : bool init false;
+TurnOnECM_go : bool init true;
+
+// Tactic applicable, start it
+[TurnOnECM_start] sys_go & TurnOnECM_go & TurnOnECM_applicable -> (TurnOnECM_used'=true) & (TurnOnECM_go'=false);
+
+// Tactic applicable, but do not start it
+[] sys_go & TurnOnECM_go & TurnOnECM_applicable -> (TurnOnECM_go'=false);
+
+// Pass if the tactic is not applicable
+[] sys_go & TurnOnECM_go & !TurnOnECM_applicable -> 1 : (TurnOnECM_go'=false);
+
+[ tick ] !TurnOnECM_go -> 1: (TurnOnECM_go'=true) & (TurnOnECM_used'=false);
+endmodule
+
+// ***********************
+// TACTIC: TurnOffECM
+// ***********************
+formula TurnOffECM_applicable = TurnOffECM_compatible & ecm=1;
+module TurnOffECM
+TurnOffECM_used : bool init false;
+TurnOffECM_go : bool init true;
+
+// Tactic applicable, start it
+[TurnOffECM_start] sys_go & TurnOffECM_go & TurnOffECM_applicable -> (TurnOffECM_used'=true) & (TurnOffECM_go'=false);
+
+// Tactic applicable, but do not start it
+[] sys_go & TurnOffECM_go & TurnOffECM_applicable -> (TurnOffECM_go'=false);
+
+// Pass if the tactic is not applicable
+[] sys_go & TurnOffECM_go & !TurnOffECM_applicable -> 1 : (TurnOffECM_go'=false);
+
+[ tick ] !TurnOffECM_go -> 1: (TurnOffECM_go'=true) & (TurnOffECM_used'=false);
+endmodule
+
+// ***********************
+// Utility Function
+// ***********************
+const int LOOSE = 0;
+const int TIGHT = 1;
+
+//formula probOfThreat = stateValue;
+// update env
+formula probOfThreat = time=0 ? threatStateProb1: time = 1 ? threatStateProb2: time = 2 ? threatStateProb3: time = 3 ? threatStateProb4: time = 4 ? threatStateProb5: stateValue;
+
+formula probabilityOfDestruction = probOfThreat * (( f = LOOSE) ? 1.0 : (1.0 / destructionFormationFactor)) * max(0.0, threatRange - a) / threatRange * (1 - ecm + ecm / ecm_factor);
+// +1 because level 0 is one level above ground
+
+module constraint // in this case the constraint is surviving
+//satisfied : bool init true;
+satisfied : [0..1] init 1;
+[ tick2 ] true -> (1.0 - probabilityOfDestruction): ( satisfied'=1) + probabilityOfDestruction : ( satisfied'=0);
+//[ tick2 ] !satisfied -> true;
+endmodule
+
+
+//formula probOfTarget= stateValue1;
+// update env
+formula probOfTarget= time=0 ? targetStateProb1: time=1 ? targetStateProb2: time=2 ? targetStateProb3: time=3 ? targetStateProb4: time=4 ? targetStateProb5: stateValue1;
+
+formula probOfDetection = probOfTarget * (( f = LOOSE) ? 1.0 : (1.0 / detectionFormationFactor)) * max(0.0, sensorRange - a) / sensorRange * (1 - ecm + ecm / ecm_factor); 
+
+module sensor
+//targetDetected: bool init false;
+targetDetected: [0..1] init 0;
+[ tick2 ] true -> probOfDetection: (targetDetected'=1) + (1.0 - probOfDetection): (targetDetected'=0);
+endmodule
+
+// as reward is always positive, we try to minimize utils
+rewards "utils"
+// reward
+[tack] targetDetected=0 : 10; 
+[tack] satisfied=0 : 10;
+// principal
+[GoTight_start] true : 1;
+[GoLoose_start] true : 1;
+[IncAlt_start] true : 1;
+[DecAlt_start] true : 1;
+// interest
+[tack] ecm=1 : 0.5;
+
+// give slight preference to not adapting
+//[ tick ] time = 0 & IncAlt_state = ini_IncAlt_state & DecAlt_state=ini_DecAlt_state & a= init_a & f= init_f : 0.000000001;
+endrewards
