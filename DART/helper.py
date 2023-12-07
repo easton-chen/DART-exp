@@ -6,18 +6,18 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def GenerateRandomEnv():
+def GenerateRandomEnv(case_num, time_limit):
     env_file = "random_env.txt"
     with open(env_file, '+w') as efile:
         target_prob_list = []
         threat_prob_list = []
-        for i in range(10):
-            for j in range(10):
+        for i in range(case_num):
+            for j in range(time_limit):
                 target_prob_list.append(random.random())
                 threat_prob_list.append(random.random())
             target_list = ""
             threat_list = ""
-            for j in range(10):
+            for j in range(time_limit):
                 if(random.random() > target_prob_list[j]):
                     target = 1
                 else:
@@ -119,7 +119,46 @@ def CollectRes(showfig=True):
         ax.set_title('Rectangular box plot')
         plt.show()
     
+def CollectResAll(showfig=True):
+    files = os.listdir("./Results")
+    util = []
+    reward = []
+    principal= []
+    interest = []
+    for i in range(4):
+        util.append([])
+        reward.append([])
+        principal.append([])
+        interest.append([])
 
+    for file in files:
+        if(file.find("log") == -1 or file.find("all-random") == -1):
+            continue
+        filename = "./Results/" + file
+        with open(filename, encoding='ISO-8859-1') as resfile:
+            
+            resall = resfile.readlines()
+            res = [0] * 4
+            #l = len(resall)
+            #print(resall[-2])
+            index = -1
+            for i in range(4):
+                res[i] = resall[-(i+1)].split()
+                
+                R = float(res[i][4].split(",")[0])
+                P = float(res[i][8].split(",")[0])
+                I = float(res[i][12])
+                reward[i].append(R)
+                principal[i].append(P)
+                interest[i].append(I)
+                util[i].append(R + P + I)
+    
+    for i in range(4):
+        print(np.mean(util[i]))
+        print(np.mean(reward[i]))
+        print(np.mean(principal[i]))
+        print(np.mean(interest[i]))
+            
 
 if __name__ == "__main__":
     arg_len = len(sys.argv)
@@ -132,8 +171,10 @@ if __name__ == "__main__":
         mode = sys.argv[1]
     
     if(mode == "env"):
-        GenerateRandomEnv()
+        GenerateRandomEnv(20,20)
     elif(mode == "res"):
         CollectRes()
+    elif(mode == "resall"):
+        CollectResAll()
     else:
         print("unknown arg:" + str(mode))

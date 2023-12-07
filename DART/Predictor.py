@@ -4,6 +4,7 @@ from DS import *
 
 class Predictor:
     def __init__(self, horizon, error_prob):
+        #self.time_limit = time_limit
         self.h = horizon
         self.err_p = error_prob
         self.target_prediction = []
@@ -138,8 +139,8 @@ class Predictor:
         fused_target_prob_list = []
         fused_threat_prob_list = []
         for i in range(self.h):
-            fused_target_prob_list.append(DSFusionDiscount(self.target_prediction[i]))
-            fused_threat_prob_list.append(DSFusionDiscount(self.threat_prediction[i]))
+            fused_target_prob_list.append(DSFusionDiscount2(self.target_prediction[i]))
+            fused_threat_prob_list.append(DSFusionDiscount2(self.threat_prediction[i]))
 
         return fused_target_prob_list, fused_threat_prob_list
 '''
@@ -196,7 +197,7 @@ def CosSimilarIndex(p1, p2):
 
     return tmp0 / (np.sqrt(tmp1) * np.sqrt(tmp2))
 
-def CosSimilarIndex2(p1, p2):
+def CosSimilarIndex1(p1, p2):
     p1_common = p1[1:]
     p1_common.append(p1_common[-1])
     p2_common = p2[:]
@@ -208,6 +209,32 @@ def CosSimilarIndex2(p1, p2):
     tmp0 = 0
     tmp1 = 0
     tmp2 = 0
+
+    #print(p1_common)
+    #print(p2_common)
+    
+    for i in range(len(p1_common)):
+        tmp0 += p1_common[i] * p2_common[i]
+        tmp1 += p1_common[i] * p1_common[i]
+        tmp2 += p2_common[i] * p2_common[i]
+
+    return tmp0 / (np.sqrt(tmp1) * np.sqrt(tmp2))
+
+def CosSimilarIndex2(p1, p2):
+    p1_common = p1[2:]
+    p1_common.append(p1_common[-1])
+    p1_common.append(p1_common[-1])
+    p2_common = p2[:]
+    l = len(p1_common)
+    for i in range(l):
+        p1_common.append(1 - p1_common[i])
+        p2_common.append(1 - p2_common[i])
+    
+    tmp0 = 0
+    tmp1 = 0
+    tmp2 = 0
+    #print(p1_common)
+    #print(p2_common)
     
     for i in range(len(p1_common)):
         tmp0 += p1_common[i] * p2_common[i]
@@ -221,8 +248,8 @@ if __name__ == "__main__":
     # prediction[i][j]: prediction for time i at time j
     
     horizon = 5
-    time_limit = 10
-    predictor = Predictor(horizon, 0.1)
+    time_limit = 100
+    predictor = Predictor(horizon, 0.15)
 
     avg_true_num = 0
     ds_true_num = 0
@@ -237,7 +264,7 @@ if __name__ == "__main__":
     ds2_prediction_for_t = [] 
     
 
-    avg_prediction_at_t = []
+    latest_prediction_at_t = []
     ds_prediction_at_t = [] 
     ds2_prediction_at_t = [] 
     for i in range(time_limit + horizon):
@@ -260,20 +287,22 @@ if __name__ == "__main__":
     for i in range(time_limit):
         #print("time: " + str(i))    
         
-        target_prediction_t, threat_prediction_t = predictor.getEnvPred2(target_list[i:i+horizon], threat_list[i:i+horizon])
-        predictor.storePrediction(target_prediction_t, threat_prediction_t)
+        target_prediction_at_t, threat_prediction_at_t = predictor.getEnvPred2(target_list[i:i+horizon], threat_list[i:i+horizon])
+        predictor.storePrediction(target_prediction_at_t, threat_prediction_at_t)
         fused_target_prediction_at_t,fused_threat_prediction_at_t = predictor.DSPredictionFusion()
         ds2_prediction_at_t.append(fused_target_prediction_at_t)
+        latest_prediction_at_t.append(target_prediction_at_t)
 
         #print(true_list[i:i+horizon])
         #print(prediction)
         for j in range(horizon):
-            last_p_1 = target_prediction_t[j]
+            last_p_1 = predictor.target_prediction[j][-1]
             avg_p_1 = np.mean(predictor.target_prediction[j])
             #kf_p_1 = KFFusion(prediction[i])
             #ds_p_1 = DSFusionDiscount(predictor.target_prediction[j])
             ds2_p_1 = DSFusionDiscount2(predictor.target_prediction[j])
-            avg_prediction_for_t[i+j].append(avg_p_1)
+            
+            #avg_prediction_for_t[i+j].append(avg_p_1)
             #ds_prediction_for_t[i+j].append(ds_p_1)
             ds2_prediction_for_t[i+j].append(ds2_p_1)
             #print("predict time " + str(i+j) + ": " + str(avg_p_1))
@@ -285,10 +314,25 @@ if __name__ == "__main__":
             #    ds_true_num += 1
             #total_num += 1
             
+            #print("time: " + str(i+j))
+            #print(target_list[i+j])
+            #print(ds2_p_1)
+            #print(last_p_1)
+            #print(avg_p_1)
+            #print(target_prediction_at_t)
+            #print(predictor.target_prediction[i+j])
             avg_acc_score[j].append(1 - abs(target_list[i+j] - avg_p_1))
             #ds_acc_score[j].append(1 - abs(target_list[i+j] - ds_p_1))
             ds2_acc_score[j].append(1 - abs(target_list[i+j] - ds2_p_1))
             last_acc_score[j].append(1 - abs(target_list[i+j] - last_p_1))
+            '''
+            if(1 - abs(target_list[i+j] - ds2_p_1) < 0.5):
+                print("outliar:")
+                print(target_list[i+j])
+                print(ds2_p_1)
+                print(last_p_1)
+                print(predictor.target_prediction[j])
+            '''
             
     #print("avg: true num:" + str(avg_true_num) + ", accurancy: " + str(avg_true_num / total_num))
     #print("ds: true num:" + str(ds_true_num) + ", accurancy: " + str(ds_true_num / total_num))
@@ -297,6 +341,7 @@ if __name__ == "__main__":
     #    print(avg_prediction_for_t[i])
     #    print(ds_prediction_for_t[i])
     #    print(ds2_prediction_for_t[i])
+    
     
     for i in range(horizon):
         print("\n")
@@ -313,14 +358,38 @@ if __name__ == "__main__":
         print("time ahead" + str(i+1) + " avg accurancy score min: " + str(np.min(avg_acc_score[i])))
         print("time ahead" + str(i+1) + " ds2 accurancy score min: " + str(np.min(ds2_acc_score[i])))
         print("time ahead" + str(i+1) + " last accurancy score min: " + str(np.min(last_acc_score[i])))
-
+    
     #print(similarIndex([0.1,0.5,0.6,0.7],[0.55,0.58,0.72,0.33]))
     '''
     l = len(ds2_prediction_at_t)
+    num1 = 0
+    num2 = 0
+    num1_latest = 0
+    num2_latest = 0
     for i in range(l):
-        if(i < l - 1):
+        if(i < l - 2):
             #print("Eucindx: " + str(EucSimilarIndex(ds2_prediction_at_t[i],ds2_prediction_at_t[i+1])))
             #print("Eucindx2: " + str(EucSimilarIndex2(ds2_prediction_at_t[i],ds2_prediction_at_t[i+1])))
             #print("cosindx: " + str(CosSimilarIndex(ds2_prediction_at_t[i],ds2_prediction_at_t[i+1])))
-            print("cosindx2: " + str(CosSimilarIndex2(ds2_prediction_at_t[i],ds2_prediction_at_t[i+1])))
+            print("ds csi1:")
+            CSI1 = CosSimilarIndex1(ds2_prediction_at_t[i],ds2_prediction_at_t[i+1])
+            print("latest csi1:")
+            CSI_latest_1 = CosSimilarIndex1(latest_prediction_at_t[i], latest_prediction_at_t[i+1])
+            print("ds csi2:")
+            CSI2 = CosSimilarIndex2(ds2_prediction_at_t[i],ds2_prediction_at_t[i+2])
+            print("latest csi2:")
+            CSI_latest_2 = CosSimilarIndex2(latest_prediction_at_t[i], latest_prediction_at_t[i+2])
+            #print("cosindx2: " + str(CSI2))
+            if(CSI1 < 0.9):
+                num1 += 1
+            if(CSI2 < 0.9):
+                num2 += 1
+            if(CSI_latest_1 < 0.9):
+                num1_latest += 1
+            if(CSI_latest_2 < 0.9):
+                num2_latest += 1
+    print(num1)
+    print(num2)
+    print(num1_latest)
+    print(num2_latest)
     '''

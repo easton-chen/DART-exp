@@ -86,13 +86,18 @@ def set_and(alist):
             res &= 3
     return res
 
-def DSFusionDiscount(m_1):
-    alpha = 0.8
+def DSFusionDiscount(prediction_1):
+    alpha = 0.5
     length = len(m_1)
+    m_1 = prediction_1.copy()
     if(length == 1):
         return m_1[0]
     m_0 = [1-p for p in m_1]
-   
+    
+    #for i in range(length):
+    #    m_1[i] = m_1[i] * alpha
+    #    m_0[i] = m_0[i] * alpha
+    #    alpha += 0.025
     m_1 = [p * 0.8 for p in m_1]
     m_0 = [p * 0.8 for p in m_0]
     m_all = []
@@ -146,7 +151,8 @@ def DSFusionDiscount(m_1):
     
     return p1
 
-def DSFusionDiscount2(m_1):
+def DSFusionDiscount2(prediction_1):
+    m_1 = prediction_1.copy()
     alpha = 0.8
     length = len(m_1)
     if(length == 1):
