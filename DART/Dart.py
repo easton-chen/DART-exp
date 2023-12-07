@@ -94,9 +94,9 @@ class Dart:
         return total_reward
 
     def getPrincipal(self, action_list, controller):
-        cost_plan = 1
-        if(controller.strategy.t == 1 and controller.type != "event"):
-            cost_plan = 0
+        cost_plan = 0
+        if(controller.strategy.t == 0 or controller.type == "event"):
+            cost_plan = 1
         cost_adapt = 0
         for action in action_list:
             if(action == 0):

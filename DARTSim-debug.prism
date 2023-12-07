@@ -3,7 +3,7 @@ mdp
 const int HORIZON=5;
 const double PERIOD=1;
 const int MAX_ALT_LEVEL=10;
-const int init_a=0;
+const int init_a=4;
 const int init_f=1;
 const int init_ecm=0;
 const double IncAlt_LATENCY=1;
@@ -16,20 +16,21 @@ const double detectionFormationFactor=1.3;
 const double sensorRange=4;
 const double ecmFactor=1.2;
 
-const double stateValue=0.8; 	//threat
-const double stateValue1=0.2; 	//target
+const double stateValue=0.9; 	//threat
+const double stateValue1=0.1; 	//target
 
-const double targetStateProb1=0.1;
-const double targetStateProb2=0.1;	
-const double targetStateProb3=0.1;
-const double targetStateProb4=0.1;
-const double targetStateProb5=0.1;
+const double targetStateProb1=0.023;
+const double targetStateProb2=0.94;
+const double targetStateProb3=0.70;
+const double targetStateProb4=0.75;
+const double targetStateProb5=0.67;
 
-const double threatStateProb1=0.6;
-const double threatStateProb2=0.6;
-const double threatStateProb3=0.6;
-const double threatStateProb4=0.6;
-const double threatStateProb5=0.6;
+const double threatStateProb1=0.968;
+const double threatStateProb2=0.07;
+const double threatStateProb3=0.26;
+const double threatStateProb4=0.26;
+const double threatStateProb5=0.33;
+
 
 // # init
 // ***********************
@@ -113,7 +114,7 @@ GoTight_go : bool init true;
 // Pass if the tactic is not applicable
 [] sys_go & GoTight_go & !GoTight_applicable -> 1 : (GoTight_go'=false);
 
-[ tick ] !GoTight_go -> 1: (GoTight_go'=true) & (GoTight_used'=false);
+[tick] !GoTight_go -> 1: (GoTight_go'=true) & (GoTight_used'=false);
 endmodule
 
 // ***********************
@@ -135,7 +136,7 @@ GoLoose_go : bool init true;
 // Pass if the tactic is not applicable
 [] sys_go & GoLoose_go & !GoLoose_applicable -> 1 : (GoLoose_go'=false);
 
-[ tick ] !GoLoose_go -> 1: (GoLoose_go'=true) & (GoLoose_used'=false);
+[tick] !GoLoose_go -> 1: (GoLoose_go'=true) & (GoLoose_used'=false);
 endmodule
 
 
@@ -167,7 +168,7 @@ IncAlt_go : bool init true;
 // Completion of the tactic
 [IncAlt_complete] sys_go & IncAlt_go & IncAlt_state =1 -> 1: (IncAlt_state'=0) & (IncAlt_go'=true);
 
-[ tick ] !IncAlt_go -> 1: (IncAlt_go'=true);
+[tick] !IncAlt_go -> 1: (IncAlt_go'=true);
 endmodule
 
 // ***********************
@@ -197,7 +198,7 @@ DecAlt_go : bool init true;
 
 // Completion of the tactic
 [DecAlt_complete] sys_go & DecAlt_go & DecAlt_state=1 -> 1: (DecAlt_state'=0) & (DecAlt_go'=true);
-[ tick ] !DecAlt_go -> 1: (DecAlt_go'=true);
+[tick] !DecAlt_go -> 1: (DecAlt_go'=true);
 endmodule
 
 // ***********************
@@ -217,7 +218,7 @@ TurnOnECM_go : bool init true;
 // Pass if the tactic is not applicable
 [] sys_go & TurnOnECM_go & !TurnOnECM_applicable -> 1 : (TurnOnECM_go'=false);
 
-[ tick ] !TurnOnECM_go -> 1: (TurnOnECM_go'=true) & (TurnOnECM_used'=false);
+[tick] !TurnOnECM_go -> 1: (TurnOnECM_go'=true) & (TurnOnECM_used'=false);
 endmodule
 
 // ***********************
@@ -237,7 +238,7 @@ TurnOffECM_go : bool init true;
 // Pass if the tactic is not applicable
 [] sys_go & TurnOffECM_go & !TurnOffECM_applicable -> 1 : (TurnOffECM_go'=false);
 
-[ tick ] !TurnOffECM_go -> 1: (TurnOffECM_go'=true) & (TurnOffECM_used'=false);
+[tick] !TurnOffECM_go -> 1: (TurnOffECM_go'=true) & (TurnOffECM_used'=false);
 endmodule
 
 // ***********************
@@ -246,8 +247,9 @@ endmodule
 const int LOOSE = 0;
 const int TIGHT = 1;
 
-formula probOfThreat = stateValue;
-//formula probOfThreat = time=0 ? threatStateProb1: time = 1 ? threatStateProb2: time = 2 ? threatStateProb3: time = 3 ? threatStateProb4: time = 4 ? threatStateProb5: stateValue;
+//formula probOfThreat = stateValue;
+formula probOfThreat = time=0 ? threatStateProb1: time = 1 ? threatStateProb2: time = 2 ? threatStateProb3: time = 3 ? threatStateProb4: time = 4 ? threatStateProb5: threatStateProb5;
+
 
 formula probabilityOfDestruction = probOfThreat * (( f = LOOSE) ? 1.0 : (1.0 / destructionFormationFactor)) * max(0.0, threatRange - a) / threatRange * (1 - ecm + ecm / ecmFactor);
 
@@ -255,20 +257,20 @@ formula probabilityOfDestruction = probOfThreat * (( f = LOOSE) ? 1.0 : (1.0 / d
 module constraint // in this case the constraint is surviving
 //satisfied : bool init true;
 satisfied : [0..1] init 1;
-[ tick2 ] true -> (1.0 - probabilityOfDestruction): ( satisfied'=1) + probabilityOfDestruction : ( satisfied'=0);
-//[ tick2 ] satisfied=0 -> true;
+[tick2] true -> (1.0 - probabilityOfDestruction): (satisfied'=1) + probabilityOfDestruction : (satisfied'=0);
+//[tick2] satisfied=0 -> true;
 endmodule
 
 
-formula probOfTarget= stateValue1;
-//formula probOfTarget= time=0 ? targetStateProb1: time = 1 ? targetStateProb2: time = 2 ? targetStateProb3: time = 3 ? targetStateProb4: time = 4 ? targetStateProb5: stateValue1;
+//formula probOfTarget= stateValue1;
+formula probOfTarget= time=0 ? targetStateProb1: time = 1 ? targetStateProb2: time = 2 ? targetStateProb3: time = 3 ? targetStateProb4: time = 4 ? targetStateProb5:targetStateProb5;
 
 formula probOfDetection = probOfTarget * (( f = LOOSE) ? 1.0 : (1.0 / detectionFormationFactor)) * max(0.0, sensorRange - a) / sensorRange * (1 - ecm + ecm / ecmFactor); 
 
 module sensor
 //targetDetected: bool init false;
-targetDetected: [0..1] init 0;
-[ tick2 ] true -> probOfDetection: (targetDetected'=1) + (1.0 - probOfDetection): (targetDetected'=0);
+targetDetected : [0..1] init 0;
+[tick2] true -> probOfDetection: (targetDetected'=1) + (1.0 - probOfDetection): (targetDetected'=0);
 endmodule
 
 // as reward is always positive, we try to minimize utils
@@ -285,5 +287,5 @@ rewards "utils"
 [tack] ecm=1 : 0.5;
 
 // give slight preference to not adapting
-//[ tick ] time = 0 & IncAlt_state = ini_IncAlt_state & DecAlt_state=ini_DecAlt_state & a= init_a & f= init_f : 0.000000001;
+//[tick] time = 0 & IncAlt_state = ini_IncAlt_state & DecAlt_state=ini_DecAlt_state & a= init_a & f= init_f : 0.000000001;
 endrewards

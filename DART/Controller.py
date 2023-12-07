@@ -1,6 +1,7 @@
 import random
 import os
 from Strategy import Strategy
+import numpy as np
 class Controller:
     def __init__(self, type):
         # IncAlt, DecAlt, GoLoose, GoTight, OnECM, OffECM
@@ -8,6 +9,31 @@ class Controller:
         self.strategy = Strategy()
         #self.strategy.loadStart()
         self.type = type
+        self.strat_pred_target = []
+        self.strat_pred_threat = []
+
+    def CosSimilarIndex(self, p1, p2):
+        p1_common = p1.copy()
+        p2_common = p2.copy()
+        l = len(p1_common)
+        if(l == 0):
+            return 0
+        for i in range(l):
+            p1_common.append(1 - p1_common[i])
+            p2_common.append(1 - p2_common[i])
+        
+        tmp0 = 0
+        tmp1 = 0
+        tmp2 = 0
+        #print(p1_common)
+        #print(p2_common)
+        
+        for i in range(len(p1_common)):
+            tmp0 += p1_common[i] * p2_common[i]
+            tmp1 += p1_common[i] * p1_common[i]
+            tmp2 += p2_common[i] * p2_common[i]
+
+        return tmp0 / (np.sqrt(tmp1) * np.sqrt(tmp2))
 
     def Control(self, dart, target_prob_list, threat_prob_list, t):
         if(self.type == "event"):
@@ -55,13 +81,24 @@ class Controller:
         return action_list
 
     def modelcheckControl(self, dart, target_prob_list, threat_prob_list, t, mode="busy"):
+        #print(target_prob_list)
+        #print(threat_prob_list)
         action_list = []
         flag = False
         if(mode == "lazy"):
-            self.strategy.t += 1
-            if(self.strategy.t == 2):
+            if(self.strategy.t != 2 and self.CosSimilarIndex(self.strat_pred_target, target_prob_list) > 0.9 and
+                self.CosSimilarIndex(self.strat_pred_threat, threat_prob_list) > 0.9):
+                self.strategy.t += 1
+                self.strat_pred_target = self.strat_pred_target[1:]
+                self.strat_pred_target.append(self.strat_pred_target[-1])
+                self.strat_pred_threat = self.strat_pred_threat[1:]
+                self.strat_pred_threat.append(self.strat_pred_threat[-1])
+                print("no plan")
+            else:
                 flag = True
                 self.strategy.t = 0
+                print("plan")
+            
         if(mode == "busy" or flag):
             # call prism 
             PRISM="~/Downloads/prism-4.8-src/prism/bin/prism"
@@ -77,15 +114,24 @@ class Controller:
             INITCONST += "init_a=" + str(dart.altitude) + ","
             INITCONST += "init_f=" + str(dart.formation) + ","
             INITCONST += "init_ecm=" + str(dart.ECM)
-            STRATFILE=self.strat_file + ".txt"
+            #STRATFILE=self.strat_file + ".txt"
+            STRATFILE=self.strat_file + str(t) + ".txt"
             STRATTYPE="actions" #actions, induced, dot
 
             cmd = PRISM + " -politer " + DARTSIM + " " + PROP + " " + ENVCONST + " " + INITCONST + " -exportstrat " + STRATFILE + ":type=" + STRATTYPE + " >prism.log"
-            #print(cmd)
+            print(cmd)
             os.system(cmd)
 
             # get startegy from file
             self.strategy.loadStart(STRATFILE)
+
+            # update prediction for this strategy
+            self.strat_pred_target = target_prob_list.copy()
+            self.strat_pred_threat = threat_prob_list.copy()
+            self.strat_pred_target = self.strat_pred_target[1:]
+            self.strat_pred_target.append(self.strat_pred_target[-1])
+            self.strat_pred_threat = self.strat_pred_threat[1:]
+            self.strat_pred_threat.append(self.strat_pred_threat[-1])
         
         # get action from startegy
         state = str(self.strategy.t) + ",0," + str(dart.altitude) + "," + str(dart.formation) + "," + str(dart.ECM) + ","

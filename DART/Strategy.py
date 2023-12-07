@@ -3,7 +3,7 @@ class Strategy:
     def __init__(self):
         self.action_lists = {}
         self.start_file = "./str.txt"
-        self.t = 1
+        self.t = 0
 
     def loadStart(self, file="./str.txt"):
         self.t = 0

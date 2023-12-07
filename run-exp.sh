@@ -25,10 +25,11 @@ if [ "$4" != "" ]; then
 fi
 
 if [ $ENV_TYPE == "random" ]; then
-    for ENV_CASE in {0..19}
+    for ENV_CASE in {0..9}
     do
         python3 ./DART/main.py $EXP_TYPE $ENV_TYPE $ENV_CASE $PRED_TYPE $CONTR_TYPE >${LOG_FILE}-${ENV_CASE}.log
     done   
 else
-    python3 ./DART/main.py $EXP_TYPE $ENV_TYPE $PRED_TYPE $CONTR_TYPE >${LOG_FILE}.log
+    ENV_CASE=0
+    python3 ./DART/main.py $EXP_TYPE $ENV_TYPE $ENV_CASE $PRED_TYPE $CONTR_TYPE >${LOG_FILE}-${ENV_CASE}.log
 fi

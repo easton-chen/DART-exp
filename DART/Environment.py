@@ -34,13 +34,22 @@ class Environment:
         elif(type == "fix"):
             self.target_gen_prob = []
             self.threat_gen_prob = []
-            for i in range(self.max_length):
-                if(i == 12 or i == 13):
-                    self.target_gen_prob.append(0)
-                    self.threat_gen_prob.append(1)
-                else:
-                    self.target_gen_prob.append(1)
-                    self.threat_gen_prob.append(0)
+            if(int(case) == 0):
+                for i in range(self.max_length):
+                    if(i == 12 or i == 13 or i == 11):
+                        self.target_gen_prob.append(0)
+                        self.threat_gen_prob.append(1)
+                    else:
+                        self.target_gen_prob.append(1)
+                        self.threat_gen_prob.append(0)
+            elif(int(case) == 1):
+                for i in range(self.max_length):
+                    if(i == 12 or i == 13 or i == 11):
+                        self.target_gen_prob.append(1)
+                        self.threat_gen_prob.append(0)
+                    else:
+                        self.target_gen_prob.append(0)
+                        self.threat_gen_prob.append(1)
 
      
     def generateEnv(self):
