@@ -158,6 +158,33 @@ def CollectResAll(showfig=True):
         print(np.mean(reward[i]))
         print(np.mean(principal[i]))
         print(np.mean(interest[i]))
+
+    if(showfig):
+        util_details = {
+            "Reward": np.array([np.mean(re) for re in reward]),
+            "Principal": np.array([np.mean(pr) for pr in principal]),
+            "Interest": np.array([np.mean(inte) for inte in interest])
+        }
+        fig, ax = plt.subplots()
+        bottom = np.zeros(4)
+        width = 0.25
+        for name, value in util_details.items():
+            p = ax.bar(("Ours","wo prediction fusion","wo similarity analysis","rule-base"), value, width, label=name, bottom=bottom)
+            bottom += value
+
+        ax.set_title("Utility of different adaptation mechanisms")
+        ax.legend(loc="best")
+
+        plt.show()
+
+        labels = ["Ours","wo prediction fusion","wo similarity analysis","rule-base"]
+        fig, ax = plt.subplots()
+        bplot1 = ax.boxplot([ut for ut in util],
+                     vert=True,  # vertical box alignment
+                     patch_artist=True,  # fill with color
+                     labels=labels)  # will be used to label x-ticks
+        ax.set_title('Utility distribution of different adaptation mechanisms')
+        plt.show()
             
 
 if __name__ == "__main__":

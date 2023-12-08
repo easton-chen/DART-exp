@@ -3,8 +3,8 @@ mdp
 const int HORIZON=5;
 const double PERIOD=1;
 const int MAX_ALT_LEVEL=10;
-const int init_a=4;
-const int init_f=1;
+const int init_a=0;
+const int init_f=0;
 const int init_ecm=0;
 const double IncAlt_LATENCY=1;
 const double DecAlt_LATENCY=1;
@@ -19,17 +19,17 @@ const double ecmFactor=1.2;
 const double stateValue=0.9; 	//threat
 const double stateValue1=0.1; 	//target
 
-const double targetStateProb1=0.023;
-const double targetStateProb2=0.94;
-const double targetStateProb3=0.70;
-const double targetStateProb4=0.75;
-const double targetStateProb5=0.67;
+const double targetStateProb1=0.99;
+const double targetStateProb2=0.01;
+const double targetStateProb3=0.99;
+const double targetStateProb4=0.99;
+const double targetStateProb5=0.99;
 
-const double threatStateProb1=0.968;
-const double threatStateProb2=0.07;
-const double threatStateProb3=0.26;
-const double threatStateProb4=0.26;
-const double threatStateProb5=0.33;
+const double threatStateProb1=0.01;
+const double threatStateProb2=0.99;
+const double threatStateProb3=0.01;
+const double threatStateProb4=0.01;
+const double threatStateProb5=0.01;
 
 
 // # init
@@ -248,7 +248,7 @@ const int LOOSE = 0;
 const int TIGHT = 1;
 
 //formula probOfThreat = stateValue;
-formula probOfThreat = time=0 ? threatStateProb1: time = 1 ? threatStateProb2: time = 2 ? threatStateProb3: time = 3 ? threatStateProb4: time = 4 ? threatStateProb5: threatStateProb5;
+formula probOfThreat = time=1 ? threatStateProb1: time = 2 ? threatStateProb2: time = 3 ? threatStateProb3: time = 4 ? threatStateProb4: time = 5 ? threatStateProb5: threatStateProb5;
 
 
 formula probabilityOfDestruction = probOfThreat * (( f = LOOSE) ? 1.0 : (1.0 / destructionFormationFactor)) * max(0.0, threatRange - a) / threatRange * (1 - ecm + ecm / ecmFactor);
@@ -263,7 +263,7 @@ endmodule
 
 
 //formula probOfTarget= stateValue1;
-formula probOfTarget= time=0 ? targetStateProb1: time = 1 ? targetStateProb2: time = 2 ? targetStateProb3: time = 3 ? targetStateProb4: time = 4 ? targetStateProb5:targetStateProb5;
+formula probOfTarget= time=1 ? targetStateProb1: time = 2 ? targetStateProb2: time = 3 ? targetStateProb3: time = 4 ? targetStateProb4: time = 5 ? targetStateProb5:targetStateProb5;
 
 formula probOfDetection = probOfTarget * (( f = LOOSE) ? 1.0 : (1.0 / detectionFormationFactor)) * max(0.0, sensorRange - a) / sensorRange * (1 - ecm + ecm / ecmFactor); 
 

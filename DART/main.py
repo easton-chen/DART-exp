@@ -23,10 +23,10 @@ init_ecm = 0
 
 # argv
 arg_len = len(sys.argv)
-exp_type = "single" 
-contr_type = "event"
-env_type = "random"
-pred_type = "fuse"
+exp_type = "single"     # single, all ,fixstart
+contr_type = "event"    # event, busymc, lazymc
+env_type = "random"     # random, fix
+pred_type = "fuse"      # fuse, latest
 env_case = 0
 if(arg_len > 1):
     exp_type = sys.argv[1]
@@ -43,45 +43,16 @@ if(arg_len > 5):
 
 env = Environment(time_limit, env_type, env_case)
 env.generateEnv()
-predictor = Predictor(horizon, 0.1)
+predictor = Predictor(horizon, 0.15)
 
-# single exp
-dart = Dart(init_a, init_f, init_ecm)
-controller = Controller(contr_type)
-reward_list = []
-principal_list = []
-interest_list = []
-
-# all exp, 4 controller, same env and predictor
-# 1 fusion, busy, event
-dart_1 = Dart(init_a, init_f, init_ecm)
-controller_1 = Controller("event")
-reward_list_1 = []
-principal_list_1 = []
-interest_list_1 = []
-
-# 2 fusion, busy, mc
-dart_2 = Dart(init_a, init_f, init_ecm)
-controller_2 = Controller("busymc")
-reward_list_2 = []
-principal_list_2 = []
-interest_list_2 = []
-
-# 3 latest, lazy, mc
-dart_3 = Dart(init_a, init_f, init_ecm)
-controller_3 = Controller("lazymc")
-reward_list_3 = []
-principal_list_3 = []
-interest_list_3 = []
-
-# 4 fusion, lazy, mc
-dart_4 = Dart(init_a, init_f, init_ecm)
-controller_4 = Controller("lazymc")
-reward_list_4 = []
-principal_list_4 = []
-interest_list_4 = []
 
 if(exp_type == "single"):
+    # single exp
+    dart = Dart(init_a, init_f, init_ecm)
+    controller = Controller(contr_type)
+    reward_list = []
+    principal_list = []
+    interest_list = []
     for t in range(time_limit):
         print("\ntime: " + str(t))
         dart.CompleteAction()
@@ -131,6 +102,34 @@ if(exp_type == "single"):
     print("total reward = " + str(total_reward) + ", total principal = " + str(total_principal) + ", total interest = " + str(total_interest))
 
 if(exp_type == "all"):
+    # all exp, 4 controller, same env and predictor
+    # 1 fusion, busy, event
+    dart_1 = Dart(init_a, init_f, init_ecm)
+    controller_1 = Controller("event")
+    reward_list_1 = []
+    principal_list_1 = []
+    interest_list_1 = []
+
+    # 2 fusion, busy, mc
+    dart_2 = Dart(init_a, init_f, init_ecm)
+    controller_2 = Controller("busymc")
+    reward_list_2 = []
+    principal_list_2 = []
+    interest_list_2 = []
+
+    # 3 latest, lazy, mc
+    dart_3 = Dart(init_a, init_f, init_ecm)
+    controller_3 = Controller("lazymc")
+    reward_list_3 = []
+    principal_list_3 = []
+    interest_list_3 = []
+
+    # 4 fusion, lazy, mc
+    dart_4 = Dart(init_a, init_f, init_ecm)
+    controller_4 = Controller("lazymc")
+    reward_list_4 = []
+    principal_list_4 = []
+    interest_list_4 = []
     for t in range(time_limit):
         print("\ntime: " + str(t))
         dart_1.CompleteAction()
@@ -253,3 +252,66 @@ if(exp_type == "all"):
     print("Dart2 total reward = " + str(total_reward_2) + ", total principal = " + str(total_principal_2) + ", total interest = " + str(total_interest_2))
     print("Dart3 total reward = " + str(total_reward_3) + ", total principal = " + str(total_principal_3) + ", total interest = " + str(total_interest_3))
     print("Dart4 total reward = " + str(total_reward_4) + ", total principal = " + str(total_principal_4) + ", total interest = " + str(total_interest_4))
+
+
+if(exp_type == "fixstrat"):
+    # 1 fusion, busy, mc
+    dart_1 = Dart(init_a, init_f, init_ecm)
+    controller_1 = Controller("fix")
+    controller_1.loadFixStrategy()
+    reward_list_1 = []
+    principal_list_1 = []
+    interest_list_1 = []
+
+
+    for t in range(time_limit):
+        print("\ntime: " + str(t))
+        dart_1.CompleteAction()
+        
+        # get env
+        target_list = env.target[t:t+horizon]
+        threat_list = env.threat[t:t+horizon]
+
+        target_prob_list, threat_prob_list = predictor.getEnvPred2(target_list, threat_list)
+        predictor.storePrediction(target_prob_list, threat_prob_list)
+        fused_target_prob_list, fused_threat_prob_list = predictor.DSPredictionFusion()
+
+        # get action list
+        action_list_1 = controller_1.Control(dart_1, fused_target_prob_list, fused_threat_prob_list, t)
+        
+        # adapt
+        print("DART1 adapt:")
+        dart_1.Adapt(action_list_1)
+        
+        # reward
+        
+        target,threat = env.getEnvState(t)
+        #target_prob, threat_prob = env.getEnvStateProb(t)
+        #print("target prob: " + str(target_prob) + " threat prob: " + str(threat_prob))
+        print("target: " + str(target) + " threat: " + str(threat))
+
+        dart_1.showState()
+        #reward = dart.getMeanReward(target_prob, threat_prob)
+        reward_1 = dart_1.getReward(target, threat)
+        principal_1 = dart_1.getPrincipal(action_list_1,controller_1)
+        interest_1 = dart_1.getInterest()
+        print("DART1 Reward: " + str(reward_1) + " Principal: " + str(principal_1) + " Interest: " + str(interest_1))
+        reward_list_1.append(reward_1)
+        principal_list_1.append(principal_1)
+        interest_list_1.append(interest_1)
+
+
+
+    total_reward_1 = 0
+    total_principal_1 = 0
+    total_interest_1 = 0
+    for r in reward_list_1:
+        total_reward_1 += r
+    for p in principal_list_1:
+        total_principal_1 += p
+    for i in interest_list_1:
+        total_interest_1 += i
+
+
+    print("Dart1 total reward = " + str(total_reward_1) + ", total principal = " + str(total_principal_1) + ", total interest = " + str(total_interest_1))
+    

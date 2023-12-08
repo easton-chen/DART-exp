@@ -84,8 +84,8 @@ class Predictor:
         target_prob_list = []
         threat_prob_list = []
         length = len(target_list)
-        thres = 0.8
-        sigma = 0.01
+        thres = 0.9
+        sigma = 0.05
         sigma_co = 1.2
         for i in range(length):
             thres = thres * 0.97
@@ -248,28 +248,28 @@ if __name__ == "__main__":
     # prediction[i][j]: prediction for time i at time j
     
     horizon = 5
-    time_limit = 100
+    time_limit = 5000
     predictor = Predictor(horizon, 0.15)
 
     avg_true_num = 0
     ds_true_num = 0
     total_num = 0
-    ds_acc_score = [[] for i in range(horizon)]
+    #ds_acc_score = [[] for i in range(horizon)]
     ds2_acc_score = [[] for i in range(horizon)]
     avg_acc_score = [[] for i in range(horizon)]
     last_acc_score = [[] for i in range(horizon)]
     
     avg_prediction_for_t = [] 
-    ds_prediction_for_t = [] 
+    #ds_prediction_for_t = [] 
     ds2_prediction_for_t = [] 
     
 
     latest_prediction_at_t = []
-    ds_prediction_at_t = [] 
+    #ds_prediction_at_t = [] 
     ds2_prediction_at_t = [] 
     for i in range(time_limit + horizon):
         avg_prediction_for_t.append([])
-        ds_prediction_for_t.append([])
+        #ds_prediction_for_t.append([])
         ds2_prediction_for_t.append([])
 
     target_list = []

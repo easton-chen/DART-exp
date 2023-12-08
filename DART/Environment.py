@@ -50,6 +50,25 @@ class Environment:
                     else:
                         self.target_gen_prob.append(0)
                         self.threat_gen_prob.append(1)
+            elif(int(case) == 2):
+                for i in range(self.max_length):
+                    if(i == 12):
+                        self.target_gen_prob.append(0)
+                        self.threat_gen_prob.append(1)
+                    else:
+                        self.target_gen_prob.append(1)
+                        self.threat_gen_prob.append(0)
+            elif(int(case) == 3):
+                for i in range(self.max_length):
+                    if(i <= 10):
+                        self.target_gen_prob.append(1)
+                        self.threat_gen_prob.append(0)
+                    elif(i <= 12):
+                        self.target_gen_prob.append(0)
+                        self.threat_gen_prob.append(0)
+                    else:
+                        self.target_gen_prob.append(0)
+                        self.threat_gen_prob.append(1)
 
      
     def generateEnv(self):

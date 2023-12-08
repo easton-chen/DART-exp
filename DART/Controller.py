@@ -11,6 +11,8 @@ class Controller:
         self.type = type
         self.strat_pred_target = []
         self.strat_pred_threat = []
+        self.fixstr = []
+
 
     def CosSimilarIndex(self, p1, p2):
         p1_common = p1.copy()
@@ -44,6 +46,9 @@ class Controller:
         
         if(self.type == "busymc"):
             return self.modelcheckControl(dart, target_prob_list, threat_prob_list, t, "busy")
+
+        if(self.type == "fix"):
+            return self.fixStrategy(t)
 
     # 1) if future possible threat, then incalt
     # 2) if immediate threat, then go tight, if already tight, then ecm on
@@ -114,12 +119,12 @@ class Controller:
             INITCONST += "init_a=" + str(dart.altitude) + ","
             INITCONST += "init_f=" + str(dart.formation) + ","
             INITCONST += "init_ecm=" + str(dart.ECM)
-            #STRATFILE=self.strat_file + ".txt"
-            STRATFILE=self.strat_file + str(t) + ".txt"
+            STRATFILE=self.strat_file + ".txt"
+            #STRATFILE=self.strat_file + str(t) + ".txt"
             STRATTYPE="actions" #actions, induced, dot
 
             cmd = PRISM + " -politer " + DARTSIM + " " + PROP + " " + ENVCONST + " " + INITCONST + " -exportstrat " + STRATFILE + ":type=" + STRATTYPE + " >prism.log"
-            print(cmd)
+            #print(cmd)
             os.system(cmd)
 
             # get startegy from file
@@ -151,4 +156,33 @@ class Controller:
                 elif(tactic == "TurnOffECM_start"):
                     action_list.append(5)
         
+        return action_list
+    
+    def loadFixStrategy(self):
+        filename = "fixStr.txt"
+        with open(filename) as f:
+            str_t = f.readlines()
+            for str in str_t:
+                str = str.strip()
+                t = str.split(" ")[0]
+                actions = str.split(" ")[1]
+                self.fixstr.append(actions)
+
+
+    def fixStrategy(self, t):
+        action_list = []
+        tactic_list = self.fixstr[t].split(",")
+        for tactic in tactic_list:
+            if(tactic == "IncAlt"):
+                action_list.append(0)
+            elif(tactic == "DecAlt"):
+                action_list.append(1)
+            elif(tactic == "GoLoose"):
+                action_list.append(2)
+            elif(tactic == "GoTight"):
+                action_list.append(3)
+            elif(tactic == "TurnOnECM"):
+                action_list.append(4)
+            elif(tactic == "TurnOffECM"):
+                action_list.append(5)
         return action_list
