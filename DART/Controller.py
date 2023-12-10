@@ -12,7 +12,7 @@ class Controller:
         self.strat_pred_target = []
         self.strat_pred_threat = []
         self.fixstr = []
-
+        self.plan_num = 0
 
     def CosSimilarIndex(self, p1, p2):
         p1_common = p1.copy()
@@ -49,6 +49,12 @@ class Controller:
 
         if(self.type == "fix"):
             return self.fixStrategy(t)
+        
+        if(self.type == "wotb"):
+            return self.modelcheckControl(dart, target_prob_list, threat_prob_list, t, "wotb")
+        
+        if(self.type == "fake"):
+            return self.fakeControl(dart, target_prob_list, threat_prob_list, t)
 
     # 1) if future possible threat, then incalt
     # 2) if immediate threat, then go tight, if already tight, then ecm on
@@ -90,7 +96,7 @@ class Controller:
         #print(threat_prob_list)
         action_list = []
         flag = False
-        if(mode == "lazy"):
+        if(mode == "lazy" or mode == "wotb"):
             if(self.strategy.t != 2 and self.CosSimilarIndex(self.strat_pred_target, target_prob_list) > 0.9 and
                 self.CosSimilarIndex(self.strat_pred_threat, threat_prob_list) > 0.9):
                 self.strategy.t += 1
@@ -104,10 +110,14 @@ class Controller:
                 self.strategy.t = 0
                 print("plan")
             
-        if(mode == "busy" or flag):
+        if(mode == "busy" or (mode == "wotb" and flag) or (mode == "lazy" and flag)):
+            self.plan_num += 1
             # call prism 
+            
             PRISM="~/Downloads/prism-4.8-src/prism/bin/prism"
-            DARTSIM="DARTSim.prism"
+            DARTSIM="DARTSim2.prism"
+            if(mode == "wotb"):
+                DARTSIM="DARTSim-wotb.prism"
             PROP="prop1.props"
             ENVCONST = "-const "
             for i in range(0,5):
@@ -119,6 +129,11 @@ class Controller:
             INITCONST += "init_a=" + str(dart.altitude) + ","
             INITCONST += "init_f=" + str(dart.formation) + ","
             INITCONST += "init_ecm=" + str(dart.ECM)
+            
+            if(dart.fix_delay == False):
+                INITCONST += ","
+                INITCONST += "ini_IncAlt_state=" + str(dart.incalt_progress) + ","
+                INITCONST += "ini_DecAlt_state=" + str(dart.decalt_progress)
             STRATFILE=self.strat_file + ".txt"
             #STRATFILE=self.strat_file + str(t) + ".txt"
             STRATTYPE="actions" #actions, induced, dot
@@ -185,4 +200,32 @@ class Controller:
                 action_list.append(4)
             elif(tactic == "TurnOffECM"):
                 action_list.append(5)
+        return action_list
+    
+    def fakeControl(self, dart, target_prob_list, threat_prob_list, t):
+        action_list = []
+        print(self.strat_pred_target)
+        print(target_prob_list)
+        print(self.strat_pred_threat)
+        print(threat_prob_list)
+        if(self.strategy.t != 2 and self.CosSimilarIndex(self.strat_pred_target, target_prob_list) > 0.9 and
+                self.CosSimilarIndex(self.strat_pred_threat, threat_prob_list) > 0.9):
+
+            self.strategy.t += 1
+            self.strat_pred_target = self.strat_pred_target[1:]
+            self.strat_pred_target.append(self.strat_pred_target[-1])
+            self.strat_pred_threat = self.strat_pred_threat[1:]
+            self.strat_pred_threat.append(self.strat_pred_threat[-1])
+            print("no plan")
+        else:
+            self.strategy.t = 0
+            self.plan_num += 1
+            print("plan")
+            self.strat_pred_target = target_prob_list.copy()
+            self.strat_pred_threat = threat_prob_list.copy()
+            self.strat_pred_target = self.strat_pred_target[1:]
+            self.strat_pred_target.append(self.strat_pred_target[-1])
+            self.strat_pred_threat = self.strat_pred_threat[1:]
+            self.strat_pred_threat.append(self.strat_pred_threat[-1])
+
         return action_list

@@ -9,16 +9,28 @@ class Dart:
         self.wait_list = []
         self.target_range = 4
         self.threat_range = 4
+        self.fix_delay = False
+        self.tactic_latency = 1
+        self.incalt_progress = 0
+        self.decalt_progress = 0
 
     def IncAlt(self):
         print("Execute IncAlt")
         #self.altitude += 1
-        self.wait_list.append("IncAlt")
+        self.incalt_progress = self.tactic_latency
+        if(self.incalt_progress == 0):
+            self.altitude += 1
+        else:
+            self.wait_list.append("IncAlt")
 
     def DecAlt(self):
         print("Execute DecAlt")
         #self.altitude -= 1
-        self.wait_list.append("DecAlt")
+        self.decalt_progress = self.tactic_latency
+        if(self.decalt_progress == 0):
+            self.altitude -= 1
+        else:
+            self.wait_list.append("DecAlt")
 
     def GoLoose(self):
         print("Execute GoLoose")
@@ -37,14 +49,23 @@ class Dart:
         self.ECM = 0
 
     def CompleteAction(self):
-        while(len(self.wait_list) != 0):
-            action = self.wait_list.pop()
-            if(action == "IncAlt"):
-                self.altitude += 1
-                print("Finish IncAlt")
-            if(action == "DecAlt"):
-                self.altitude -= 1
-                print("Finish DecAlt")
+        complete_actions = []
+        for i in range(len(self.wait_list)):
+            if(self.wait_list[i] == "IncAlt"):
+                self.incalt_progress -= 1
+                if(self.incalt_progress == 0):
+                    self.altitude += 1
+                    print("Finish IncAlt")
+                    complete_actions.append(i)
+            if(self.wait_list[i] == "DecAlt"):
+                self.decalt_progress -= 1
+                if(self.decalt_progress == 0):
+                    self.altitude -= 1
+                    print("Finish DecAlt")
+                    complete_actions.append(i)
+        for i in complete_actions:
+            self.wait_list.pop(i)
+
 
     def Adapt(self, action_list):
         for action in action_list:

@@ -6,8 +6,8 @@ const int MAX_ALT_LEVEL=10;
 const int init_a;
 const int init_f;
 const int init_ecm;
-const double IncAlt_LATENCY=1;
-const double DecAlt_LATENCY=1;
+const double IncAlt_LATENCY=0;
+const double DecAlt_LATENCY=0;
 const int ini_IncAlt_state;
 const int ini_DecAlt_state;
 const double destructionFormationFactor=1.3;
@@ -67,8 +67,8 @@ ecm : [0..1] init ecm_INIT;
 
 [GoTight_start] f=0 -> 1: (a'=a_GoTight_impact) & ( f'=f_GoTight_impact);
 [GoLoose_start] f=1 -> 1: (a'=a_GoLoose_impact) & ( f'=f_GoLoose_impact);
-[IncAlt_complete] a < MAX_ALT_LEVEL -> 1: (a'=a_IncAlt_impact) & ( f'= f_IncAlt_impact ) ;
-[DecAlt_complete] a > 0 -> 1: (a'=a_DecAlt_impact) & ( f'=f_DecAlt_impact);
+[IncAlt_start] a < MAX_ALT_LEVEL -> 1: (a'=a_IncAlt_impact) & ( f'= f_IncAlt_impact ) ;
+[DecAlt_start] a > 0 -> 1: (a'=a_DecAlt_impact) & ( f'=f_DecAlt_impact);
 [TurnOnECM_start] ecm=0 -> 1: (ecm'=1);
 [TurnOffECM_start] ecm=1 -> 1: (ecm'=0);
 endmodule
@@ -83,8 +83,8 @@ formula a_DecAlt_impact = a + (-1) >= a_MIN ? ( a+(-1)<=a_MAX? a+(-1) : a_MAX) :
 formula f_DecAlt_impact = f + (0) >= f_MIN ? ( f+(0)<=f_MAX? f+(0) : f_MAX) : f_MIN;
 
 // tactic concurrency rules
-formula IncAlt_used = IncAlt_state != 0;
-formula DecAlt_used = DecAlt_state != 0;
+//formula IncAlt_used = IncAlt_state != 0;
+//formula DecAlt_used = DecAlt_state != 0;
 
 formula GoTight_compatible = !GoLoose_used;
 formula GoLoose_compatible = !GoTight_used;
@@ -149,25 +149,26 @@ const int IncAlt_LATENCY_PERIODS = ceil(IncAlt_LATENCY/PERIOD);
 formula IncAlt_applicable = IncAlt_compatible & a < MAX_ALT_LEVEL;
 
 module IncAlt
-IncAlt_state : [0.. IncAlt_LATENCY_PERIODS] init ini_IncAlt_state;
+//IncAlt_state : [0.. IncAlt_LATENCY_PERIODS] init ini_IncAlt_state;
+IncAlt_used : bool init false;
 IncAlt_go : bool init true;
 
 // Tactic applicable, start it
-[IncAlt_start] sys_go & IncAlt_go & IncAlt_state =0 & IncAlt_applicable -> (IncAlt_state'=IncAlt_LATENCY_PERIODS) & (IncAlt_go'=false);
+[IncAlt_start] sys_go & IncAlt_go & IncAlt_applicable -> (IncAlt_used'=true) & (IncAlt_go'=false);
 
 // Tactic applicable, but do not start it
-[] sys_go & IncAlt_go & IncAlt_state =0 & IncAlt_applicable -> (IncAlt_go'=false);
+[] sys_go & IncAlt_go & IncAlt_applicable -> (IncAlt_go'=false);
 
 // Pass if the tactic is not applicable
-[] sys_go & IncAlt_go & IncAlt_state =0 & ! IncAlt_applicable -> 1 : (IncAlt_go'=false);
+[] sys_go & IncAlt_go & ! IncAlt_applicable -> 1 : (IncAlt_go'=false);
 
 // Progress of the tactic
-[] sys_go & IncAlt_go & IncAlt_state > 1 -> 1: (IncAlt_state'= IncAlt_state -1) & (IncAlt_go'=false);
+//[] sys_go & IncAlt_go & IncAlt_state > 1 -> 1: (IncAlt_state'= IncAlt_state -1) & (IncAlt_go'=false);
 
 // Completion of the tactic
-[IncAlt_complete] sys_go & IncAlt_go & IncAlt_state =1 -> 1: (IncAlt_state'=0) & (IncAlt_go'=true);
+//[IncAlt_complete] sys_go & IncAlt_go & IncAlt_state =1 -> 1: (IncAlt_state'=0) & (IncAlt_go'=true);
 
-[tick] !IncAlt_go -> 1: (IncAlt_go'=true);
+[tick] !IncAlt_go -> 1: (IncAlt_go'=true) & (IncAlt_used'=false);
 endmodule
 
 // ***********************
@@ -180,24 +181,25 @@ const int DecAlt_LATENCY_PERIODS = ceil(DecAlt_LATENCY/PERIOD);
 formula DecAlt_applicable = DecAlt_compatible & a > 0;
 
 module DecAlt
-DecAlt_state : [0.. DecAlt_LATENCY_PERIODS] init ini_DecAlt_state;
+//DecAlt_state : [0.. DecAlt_LATENCY_PERIODS] init ini_DecAlt_state;
+DecAlt_used : bool init false;
 DecAlt_go : bool init true;
 
 // Tactic applicable, start it
-[DecAlt_start] sys_go & DecAlt_go & DecAlt_state=0 & DecAlt_applicable -> (DecAlt_state'=DecAlt_LATENCY_PERIODS) & (DecAlt_go'=false);
+[DecAlt_start] sys_go & DecAlt_go & DecAlt_applicable -> (DecAlt_used'=true) & (DecAlt_go'=false);
 
 // Tactic applicable, but do not start it
-[] sys_go & DecAlt_go & DecAlt_state=0 & DecAlt_applicable -> (DecAlt_go'=false);
+[] sys_go & DecAlt_go & DecAlt_applicable -> (DecAlt_go'=false);
 
 // Pass if the tactic is not applicable
-[] sys_go & DecAlt_go & DecAlt_state=0 & !DecAlt_applicable -> 1 : (DecAlt_go'=false);
+[] sys_go & DecAlt_go & !DecAlt_applicable -> 1 : (DecAlt_go'=false);
 
 // Progress of the tactic
-[] sys_go & DecAlt_go & DecAlt_state > 1 -> 1: (DecAlt_state'=DecAlt_state-1) & (DecAlt_go'=false);
+//[] sys_go & DecAlt_go & DecAlt_state > 1 -> 1: (DecAlt_state'=DecAlt_state-1) & (DecAlt_go'=false);
 
 // Completion of the tactic
-[DecAlt_complete] sys_go & DecAlt_go & DecAlt_state=1 -> 1: (DecAlt_state'=0) & (DecAlt_go'=true);
-[tick] !DecAlt_go -> 1: (DecAlt_go'=true);
+//[DecAlt_complete] sys_go & DecAlt_go & DecAlt_state=1 -> 1: (DecAlt_state'=0) & (DecAlt_go'=true);
+[tick] !DecAlt_go -> 1: (DecAlt_go'=true) & (DecAlt_used'=false);
 endmodule
 
 // ***********************

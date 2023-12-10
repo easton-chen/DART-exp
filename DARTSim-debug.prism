@@ -276,8 +276,8 @@ endmodule
 // as reward is always positive, we try to minimize utils
 rewards "utils"
 // reward
-[tack] targetDetected=0 : 10; 
-[tack] satisfied=0 : 10;
+[tack] targetDetected=0 : 20; 
+[tack] satisfied=0 : 20;
 // principal
 [GoTight_start] true : 1;
 [GoLoose_start] true : 1;

@@ -8,8 +8,8 @@ const int init_f;
 const int init_ecm;
 const double IncAlt_LATENCY=1;
 const double DecAlt_LATENCY=1;
-const int ini_IncAlt_state;
-const int ini_DecAlt_state;
+const int ini_IncAlt_state=0;
+const int ini_DecAlt_state=0;
 const double destructionFormationFactor=1.3;
 const double threatRange=4;
 const double detectionFormationFactor=1.3;
@@ -279,12 +279,12 @@ rewards "utils"
 [tack] targetDetected=0 : 10; 
 [tack] satisfied=0 : 10;
 // principal
-[GoTight_start] true : 1;
-[GoLoose_start] true : 1;
-[IncAlt_start] true : 1;
-[DecAlt_start] true : 1;
+//[GoTight_start] true : 1;
+//[GoLoose_start] true : 1;
+//[IncAlt_start] true : 1;
+//[DecAlt_start] true : 1;
 // interest
-[tack] ecm=1 : 0.5;
+//[tack] ecm=1 : 0.5;
 
 // give slight preference to not adapting
 //[tick] time = 0 & IncAlt_state = ini_IncAlt_state & DecAlt_state=ini_DecAlt_state & a= init_a & f= init_f : 0.000000001;

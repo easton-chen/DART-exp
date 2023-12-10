@@ -7,6 +7,8 @@ class Predictor:
         #self.time_limit = time_limit
         self.h = horizon
         self.err_p = error_prob
+        self.thres = 0.8
+        self.sigma = 0.01
         self.target_prediction = []
         self.threat_prediction = []
         for i in range(self.h):
@@ -30,8 +32,8 @@ class Predictor:
         target_prob_list = []
         threat_prob_list = []
         length = len(target_list)
-        thres = 0.8
-        sigma = 0.01
+        thres = self.thres
+        sigma = self.sigma
         sigma_co = 1.1
         for i in range(length):
             if(target_list[i] == 1):
@@ -84,8 +86,8 @@ class Predictor:
         target_prob_list = []
         threat_prob_list = []
         length = len(target_list)
-        thres = 0.9
-        sigma = 0.05
+        thres = self.thres
+        sigma = self.sigma
         sigma_co = 1.2
         for i in range(length):
             thres = thres * 0.97
@@ -93,7 +95,8 @@ class Predictor:
                 if(random.random() > self.err_p):
                     mu = thres
                 else:
-                    mu = 1-thres
+                    #mu = 1-thres
+                    mu = thres - 0.5
                 sigma *= sigma_co
                 p = np.random.normal(mu, sigma)
                 p = min(1, p)
@@ -103,7 +106,8 @@ class Predictor:
                 if(random.random() > self.err_p):
                     mu = 1-thres
                 else:
-                    mu = thres
+                    #mu = thres
+                    mu = 1.5 - thres
                 sigma *= sigma_co
                 p = np.random.normal(mu, sigma)
                 p = min(1, p)
@@ -113,7 +117,8 @@ class Predictor:
                 if(random.random() > self.err_p):
                     mu = thres
                 else:
-                    mu = 1-thres
+                    #mu = 1-thres
+                    mu = thres - 0.5
                 sigma *= sigma_co
                 p = np.random.normal(mu, sigma)
                 p = min(1, p)
@@ -123,7 +128,8 @@ class Predictor:
                 if(random.random() > self.err_p):
                     mu = 1-thres
                 else:
-                    mu = thres
+                    #mu = thres
+                    mu = 1.5 - thres
                 sigma *= sigma_co
                 p = np.random.normal(mu, sigma)
                 p = min(1, p)
@@ -283,7 +289,7 @@ if __name__ == "__main__":
             threat_list.append(1)
         else:
             threat_list.append(0)
-
+    
     for i in range(time_limit):
         #print("time: " + str(i))    
         
@@ -341,8 +347,8 @@ if __name__ == "__main__":
     #    print(avg_prediction_for_t[i])
     #    print(ds_prediction_for_t[i])
     #    print(ds2_prediction_for_t[i])
-    
-    
+
+
     for i in range(horizon):
         print("\n")
         print("time ahead" + str(i+1) + " avg accurancy score mean: " + str(np.mean(avg_acc_score[i])))
@@ -358,7 +364,7 @@ if __name__ == "__main__":
         print("time ahead" + str(i+1) + " avg accurancy score min: " + str(np.min(avg_acc_score[i])))
         print("time ahead" + str(i+1) + " ds2 accurancy score min: " + str(np.min(ds2_acc_score[i])))
         print("time ahead" + str(i+1) + " last accurancy score min: " + str(np.min(last_acc_score[i])))
-    
+
     #print(similarIndex([0.1,0.5,0.6,0.7],[0.55,0.58,0.72,0.33]))
     '''
     l = len(ds2_prediction_at_t)
