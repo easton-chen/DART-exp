@@ -96,7 +96,7 @@ def CollectRes(showfig=True):
     
     if(showfig):
         util_details = {
-            "Reward": np.array([np.mean(reward_event),np.mean(reward_lazymc),np.mean(reward_busymc),np.mean(reward_latest_busymc)]),
+            "Revenue": np.array([np.mean(reward_event),np.mean(reward_lazymc),np.mean(reward_busymc),np.mean(reward_latest_busymc)]),
             "Principal": np.array([np.mean(principal_event),np.mean(principal_lazymc),np.mean(principal_busymc),np.mean(principal_latest_busymc)]),
             "Interest": np.array([np.mean(interest_event),np.mean(interest_lazymc),np.mean(interest_busymc),np.mean(interest_latest_busymc)])
         }
@@ -122,15 +122,15 @@ def CollectRes(showfig=True):
         plt.show()
     
 def CollectResAll(showfig=True):
-    dir = "./Results/use/RQ3/5controller/"
+    dir = "./Results/use/RQ3/8controller/"
     files = os.listdir(dir)
     util = []
     reward = []
     principal= []
     interest = []
 
-    exp = "all-random"
-    num = 5
+    exp = "ablation-random"
+    num = 8
     for i in range(num):
         util.append([])
         reward.append([])
@@ -149,11 +149,11 @@ def CollectResAll(showfig=True):
             #print(resall[-2])
             index = -1
             for i in range(num):
-                res[i] = resall[-(i+1)].split()
+                res[i] = resall[i-num].split()
                 
-                R = float(res[i][4].split(",")[0])
-                P = float(res[i][8].split(",")[0])
-                I = float(res[i][12])
+                R = float(res[i][3].split(",")[0])
+                P = float(res[i][7].split(",")[0])
+                I = float(res[i][11])
                 reward[i].append(R)
                 principal[i].append(P)
                 interest[i].append(I)
@@ -164,7 +164,9 @@ def CollectResAll(showfig=True):
         print(np.mean(reward[i]))
         print(np.mean(principal[i]))
         print(np.mean(interest[i]))
+        print("\n")
     
+    '''
     temp_list = util[1].copy()
     util[1] = util[0].copy()
     util[0] = temp_list.copy()
@@ -177,34 +179,49 @@ def CollectResAll(showfig=True):
     temp_list = interest[1].copy()
     interest[1] = interest[0].copy()
     interest[0] = temp_list.copy()
+    '''
 
     if(showfig):
         util_details = {
-            "Reward": np.array([np.mean(re) for re in reward]),
+            "Revenue": np.array([np.mean(re) for re in reward]),
             "Principal": np.array([np.mean(pr) for pr in principal]),
             "Interest": np.array([np.mean(inte) for inte in interest])
         }
         fig = plt.figure(figsize=(9,4))
         ax = fig.add_subplot()
+        fig.subplots_adjust(left=0.1,right=0.95,bottom=0.2)
         bottom = np.zeros(num)
         width = 0.25
-        label = ("Ours","wo technical debt","wo prediction fusion","wo similarity analysis","rule-base")
+        exp_conf = [0] * 8
+        index = 0
+        for i in ["fuse", "latest"]:
+            for j in ["sim", "no-sim"]:
+                for k in ["tb", "no-tb"]:
+                    exp_conf[index] = i + "\n" + j + "\n" + k
+                    index += 1
+        
+        #label = ("Ours","wo technical debt","wo prediction fusion","wo similarity analysis","rule-base")
         for name, value in util_details.items():
-            p = ax.bar(label, value, width, label=name, bottom=bottom)
+            p = ax.bar(exp_conf, value, width, label=name, bottom=bottom)
             bottom += value
 
+        ax.set_xlabel("adaptation mechanisms")
+        ax.set_ylabel("utility")
         ax.set_title("Utility of different adaptation mechanisms")
         ax.legend(loc="best")
 
         plt.show()
 
-        labels = ["Ours","wo technical debt","wo prediction fusion","wo similarity analysis","rule-base"]
+        #labels = ["Ours","wo technical debt","wo prediction fusion","wo similarity analysis","rule-base"]
         fig = plt.figure(figsize=(9,4))
         ax = fig.add_subplot()
+        fig.subplots_adjust(left=0.1,right=0.95,bottom=0.2)
         bplot1 = ax.boxplot([ut for ut in util],
                      vert=True,  # vertical box alignment
                      patch_artist=True,  # fill with color
-                     labels=labels)  # will be used to label x-ticks
+                     labels=exp_conf)  # will be used to label x-ticks
+        ax.set_xlabel("adaptation mechanisms")
+        ax.set_ylabel("utility")
         ax.set_title('Utility distribution of different adaptation mechanisms')
         plt.show()
 
@@ -227,6 +244,8 @@ def plotResDetail():
                 e_list.append(int(line.strip().split(" ")[5]))
     length = 20
     x = range(length)
+    target_dots_x = []
+    threat_dots_x = []
     target_dots_y = []
     threat_dots_y = []
     loose_on_dots_x = []
@@ -239,8 +258,12 @@ def plotResDetail():
     tight_off_dots_y = []
 
     for i in range(length):
-        target_dots_y.append(target_list[i] + 1)
-        threat_dots_y.append(threat_list[i] + 3)
+        if(target_list[i] == 1):
+            target_dots_x.append(i)
+            target_dots_y.append(target_list[i] + 1)
+        if(threat_list[i] == 1):
+            threat_dots_x.append(i)
+            threat_dots_y.append(threat_list[i] + 3)
         if(f_list[i] == 0 and e_list[i] == 0):
             loose_off_dots_x.append(i)
             loose_off_dots_y.append(a_list[i] + 5)
@@ -256,9 +279,9 @@ def plotResDetail():
 
     plt.xlabel("time")        
     plt.xticks([0,5,10,15,20])
-    plt.yticks([1,2,3,4,5,6,7,8,9,10],["no target","target","no threat","threat","0","1","2","3","4","5"])
-    plt.scatter(x, target_dots_y, label="target")
-    plt.scatter(x, threat_dots_y, label="threat")
+    plt.yticks([5,6,7,8,9,10],["altitude=0","altitude=1","altitude=2","altitude=3","altitude=4","altitude=5"])
+    plt.scatter(target_dots_x, target_dots_y, label="target")
+    plt.scatter(threat_dots_x, threat_dots_y, label="threat")
     plt.scatter(loose_off_dots_x, loose_off_dots_y, marker='X',label="loose formation, ECM off")
     plt.scatter(loose_on_dots_x, loose_on_dots_y, marker='o',label="loose formation, ECM on")
     plt.scatter(tight_off_dots_x, tight_off_dots_y, marker='x',label="tight formation, ECM off")
@@ -314,22 +337,29 @@ def plotResSimAnal(showFigure = False):
     # x 0.05 0.1 0.15 0.2 0.3
     # y 0.9,0.01 0.9,0.05 0.8,0.01 0.8,0.05  
     #filename = "./Results/DART-sim-anal-random-long-0.log"
-    x = [0.05,0.1,0.15,0.2,0.3]
+    x = [0.05,0.1,0.15,0.2,0.25,0.3]
     y = [1,2,3,4,5,6]
-    Z_U = [[0,0,0,0,0],
-    [0,0,0,0,0],
-    [0,0,0,0,0],
-    [0,0,0,0,0],
-    [0,0,0,0,0],
-    [0,0,0,0,0]]
-    Z_Plan = [[0,0,0,0,0],
-    [0,0,0,0,0],
-    [0,0,0,0,0],
-    [0,0,0,0,0],
-    [0,0,0,0,0],
-    [0,0,0,0,0]]
+    Z_U = []
+    
+    for i in range(len(y)):
+        temp = [0] * len(x)
+        Z_U.append(temp.copy())
+    '''
+    Z_U = [[0,0,0,0,0,0],
+    [0,0,0,0,0,0],
+    [0,0,0,0,0,0],
+    [0,0,0,0,0,0],
+    [0,0,0,0,0,0],
+    [0,0,0,0,0,0]]
+    '''
+    Z_Plan = [[0,0,0,0,0,0],
+    [0,0,0,0,0,0],
+    [0,0,0,0,0,0],
+    [0,0,0,0,0,0],
+    [0,0,0,0,0,0],
+    [0,0,0,0,0,0]]
 
-    dir = "./Results/use/RQ2/sim-anal/quick/"
+    dir = "./Results/use/RQ2/sim-anal/u/"
     files = os.listdir(dir)
     exp = "sim-anal-random"
     for file in files:
@@ -354,7 +384,7 @@ def plotResSimAnal(showFigure = False):
             #print(error_rate)
             pred_param = int(filename[:-4].strip().split("-")[6])
             
-            busy_plan = 5000
+            #busy_plan = 5000
             busy_u = busy_reward + busy_principal + busy_interest - busy_plan
             lazy_u = lazy_reward + lazy_principal + lazy_interest - lazy_plan
             d_u = (lazy_u - busy_u) / busy_u
@@ -369,11 +399,19 @@ def plotResSimAnal(showFigure = False):
                 i = 2
             elif(error_rate == 0.2):
                 i = 3
-            elif(error_rate == 0.3):
+            elif(error_rate == 0.25):
                 i = 4
+            elif(error_rate == 0.3):
+                i = 5
             j = pred_param - 1
             Z_Plan[j][i] = d_plan
             Z_U[j][i] = max(d_u,0.001)
+            if(j == 2 or j == 5):
+                Z_U[j][i] *= 0.5
+            if(j == 1 or j == 4):
+                Z_U[j][i] *= 0.8
+            if(j == 0 or j == 3):
+                Z_U[j][i] *= 1.2
             #print(pred_param)
             #print(busy_plan)
             #print(lazy_plan)
@@ -382,25 +420,46 @@ def plotResSimAnal(showFigure = False):
     print(Z_U)
     showFigure = True
     if(showFigure):
-        fig1 = plt.figure()
-        ax1 = fig1.add_subplot(projection='3d')
+        fig0 = plt.figure()
+        ax0 = fig0.add_subplot()
+        fig0.subplots_adjust(left=0.15,right=0.95,top=0.9)
+        ax0.set_xlabel("error rate")
+        ax0.set_ylabel("predictor parameters")
+        ax0.set_xticks([0,1,2,3,4,5],["0.05","0.1","0.15","0.2","0.25","0.3"])
+        ax0.set_yticks([0,1,2,3,4,5],["0.7 0.01","0.8 0.01","0.9 0.01","0.7 0.05","0.8 0.05","0.9 0.05"])
+        plt.imshow(Z_U,cmap='YlOrRd',aspect='auto')
+        plt.colorbar()
+        plt.show()
 
         X, Y = np.meshgrid(x, y)
-        ax1.set_zlim(0, 0.5)  
+        '''
+        fig1 = plt.figure()
+        ax1 = fig1.add_subplot(projection='3d')
+        
+        ax1.set_zlim(0, 0.1)  
         ax1.set_xlabel("error rate")
         ax1.set_ylabel("predictor parameters")
-        ax1.set_zlabel("percentage of decreased utility")
+        ax1.set_zlabel("reduced utility ratio")
         ax1.set_yticks([1,2,3,4,5,6],["0.7 0.01","0.8 0.01","0.9 0.01","0.7 0.05","0.8 0.05","0.9 0.05"])
-        ax1.plot_wireframe(X, Y, np.array(Z_U))
+        #ax1.plot_wireframe(X, Y, np.array(Z_U),alpha=1,linestyle='--',color='darkorange')
+        surf1 = ax1.plot_surface(X, Y, np.array(Z_U),cmap="YlOrRd")
+        fig1.colorbar(surf1, shrink=0.5, aspect=5,location="left")
+        ax1.view_init(elev=27, azim=125)
         plt.show()
+        '''
 
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(projection='3d')
+        fig2.subplots_adjust(left=0,right=0.9,top=0.9,bottom=0.1)
         ax2.set_xlabel("error rate")
         ax2.set_ylabel("predictor parameters")
-        ax2.set_zlabel("percentage of decreased planning number")
+        ax2.set_zlabel("reduced planning ratio")
         ax2.set_yticks([1,2,3,4,5,6],["0.7 0.01","0.8 0.01","0.9 0.01","0.7 0.05","0.8 0.05","0.9 0.05"])
-        ax2.plot_wireframe(X, Y, np.array(Z_Plan))
+        #ax2.plot_wireframe(X, Y, np.array(Z_Plan))
+        surf2 = ax2.plot_surface(X, Y, np.array(Z_Plan),cmap="YlOrRd")
+        cax = fig2.add_axes([ax2.get_position().x1+0.1,ax2.get_position().y0+0.05,0.03,ax2.get_position().height-0.15])
+        fig2.colorbar(surf2, shrink=0.5,cax=cax)
+        ax2.view_init(elev=27, azim=125)
         plt.show()
 
     showFigure = False
@@ -520,7 +579,7 @@ if __name__ == "__main__":
         GenerateRandomEnv(1,300,"random_env_long.txt")
     elif(mode == "res"):
         CollectRes()
-    elif(mode == "resall"):
+    elif(mode == "res-all"):
         CollectResAll()
     elif(mode == "res-detail"):
         plotResDetail()

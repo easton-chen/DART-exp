@@ -116,7 +116,7 @@ class Dart:
 
     def getPrincipal(self, action_list, controller):
         cost_plan = 0
-        if(controller.strategy.t == 0 or controller.type == "event"):
+        if(controller.strategy.t == 0 or controller.plan_type == "event"):
             cost_plan = 1
         cost_adapt = 0
         for action in action_list:

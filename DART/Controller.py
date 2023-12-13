@@ -3,12 +3,13 @@ import os
 from Strategy import Strategy
 import numpy as np
 class Controller:
-    def __init__(self, type):
+    def __init__(self, anal_type, plan_type):
         # IncAlt, DecAlt, GoLoose, GoTight, OnECM, OffECM
         self.strat_file = "str"
         self.strategy = Strategy()
         #self.strategy.loadStart()
-        self.type = type
+        self.anal_type = anal_type    # sim, no-sim
+        self.plan_type = plan_type  # tb, no-tb    
         self.strat_pred_target = []
         self.strat_pred_threat = []
         self.fixstr = []
@@ -38,24 +39,26 @@ class Controller:
         return tmp0 / (np.sqrt(tmp1) * np.sqrt(tmp2))
 
     def Control(self, dart, target_prob_list, threat_prob_list, t):
-        if(self.type == "event"):
+        if(self.plan_type == "event"):
             return self.simpleEventControl(dart, target_prob_list, threat_prob_list, t)
+        elif(self.plan_type == "fix"):
+            return self.fixStrategy(t)
+        elif(self.plan_type == "fake"):
+            return self.fakeControl(dart, target_prob_list, threat_prob_list, t)
+        else:
+            return self.modelcheckControl(dart, target_prob_list, threat_prob_list, t)
         
-        if(self.type == "lazymc"):
+        '''
+        if(self.plan_type == "lazymc"):
             return self.modelcheckControl(dart, target_prob_list, threat_prob_list, t, "lazy")
         
-        if(self.type == "busymc"):
+        if(self.plan_type == "busymc"):
             return self.modelcheckControl(dart, target_prob_list, threat_prob_list, t, "busy")
-
-        if(self.type == "fix"):
-            return self.fixStrategy(t)
         
-        if(self.type == "wotb"):
+        if(self.plan_type == "wotb"):
             return self.modelcheckControl(dart, target_prob_list, threat_prob_list, t, "wotb")
+        '''
         
-        if(self.type == "fake"):
-            return self.fakeControl(dart, target_prob_list, threat_prob_list, t)
-
     # 1) if future possible threat, then incalt
     # 2) if immediate threat, then go tight, if already tight, then ecm on
     # 3) else if future possible target, then decalt
@@ -91,12 +94,12 @@ class Controller:
 
         return action_list
 
-    def modelcheckControl(self, dart, target_prob_list, threat_prob_list, t, mode="busy"):
+    def modelcheckControl(self, dart, target_prob_list, threat_prob_list, t):
         #print(target_prob_list)
         #print(threat_prob_list)
         action_list = []
         flag = False
-        if(mode == "lazy" or mode == "wotb"):
+        if(self.anal_type == "sim"):
             if(self.strategy.t != 2 and self.CosSimilarIndex(self.strat_pred_target, target_prob_list) > 0.9 and
                 self.CosSimilarIndex(self.strat_pred_threat, threat_prob_list) > 0.9):
                 self.strategy.t += 1
@@ -110,13 +113,13 @@ class Controller:
                 self.strategy.t = 0
                 print("plan")
             
-        if(mode == "busy" or (mode == "wotb" and flag) or (mode == "lazy" and flag)):
+        if(self.anal_type == "no-sim" or flag):
             self.plan_num += 1
             # call prism 
             
             PRISM="~/Downloads/prism-4.8-src/prism/bin/prism"
-            DARTSIM="DARTSim2.prism"
-            if(mode == "wotb"):
+            DARTSIM="DARTSim.prism"
+            if(self.plan_type == "no-tb"):
                 DARTSIM="DARTSim-wotb.prism"
             PROP="prop1.props"
             ENVCONST = "-const "

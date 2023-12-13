@@ -13,6 +13,20 @@ import numpy as np
 #
 ####################################
 
+class ExpInstance:
+    def __init__(self, pred, anal, plan) -> None:
+        self.pred_type = pred
+        self.anal_type = anal
+        self.plan_type = plan
+        self.dart = Dart(init_a, init_f, init_ecm)
+        self.controller = Controller(self.anal_type, self.plan_type)
+        self.revenue_list = []
+        self.principal_list = []
+        self.interest_list = []
+
+    def printType(self):
+        print(str(self.pred_type) + " " + str(self.anal_type) + " " + str(self.plan_type))
+
 # main function
 time_limit = 20
 horizon = 5
@@ -27,7 +41,8 @@ exp_type = "single"     # single, all ,fixstart, sim-anal
 env_type = "random"     # random, fix, random-long
 env_case = 0
 pred_type = "fuse"      # fuse, latest
-contr_type = "event"    # event, busymc, lazymc
+anal_type = "no-sim"    # sim, no-sim
+plan_type = "event"    # event, tb, no-tb
 err_rate = 0.15
 pred_param = 1
 if(arg_len > 1):
@@ -39,11 +54,13 @@ if(arg_len > 3):
 if(arg_len > 4):
     pred_type = sys.argv[4]
 if(arg_len > 5):
-    contr_type = sys.argv[5]
+    anal_type = sys.argv[5]
 if(arg_len > 6):
-    err_rate = float(sys.argv[6])
+    plan_type = sys.argv[6]
 if(arg_len > 7):
-    pred_param = int(sys.argv[7])
+    err_rate = float(sys.argv[7])
+if(arg_len > 8):
+    pred_param = int(sys.argv[8])
 
 
 # class init
@@ -56,7 +73,7 @@ predictor = Predictor(horizon, 0)
 if(exp_type == "single"):
     # single exp
     dart = Dart(init_a, init_f, init_ecm)
-    controller = Controller(contr_type)
+    controller = Controller(anal_type, plan_type)
     reward_list = []
     principal_list = []
     interest_list = []
@@ -309,7 +326,7 @@ if(exp_type == "fixstrat"):
     time_limit = len(env.target)
     # 1 fusion, busy, mc
     dart_1 = Dart(init_a, init_f, init_ecm)
-    controller_1 = Controller("fix")
+    controller_1 = Controller(anal_type, "fix")
     controller_1.loadFixStrategy()
     reward_list_1 = []
     principal_list_1 = []
@@ -389,14 +406,14 @@ if(exp_type == "sim-anal"):
     # similar anaylsis
     # 1 fusion, busy, mc
     dart_1 = Dart(init_a, init_f, init_ecm)
-    controller_1 = Controller("lazymc")
+    controller_1 = Controller(anal_type, "fake")
     reward_list_1 = []
     principal_list_1 = []
     interest_list_1 = []
 
     # 2 fusion, lazy, mc
     dart_2 = Dart(init_a, init_f, init_ecm)
-    controller_2 = Controller("busymc")
+    controller_2 = Controller(anal_type, "fake")
     reward_list_2 = []
     principal_list_2 = []
     interest_list_2 = []
@@ -491,14 +508,14 @@ if(exp_type == "tb-anal"):
     # similar anaylsis
     # 1 fusion, busy, mc
     dart_1 = Dart(init_a, init_f, init_ecm)
-    controller_1 = Controller("wotb")
+    controller_1 = Controller(anal_type, "no-tb")
     reward_list_1 = []
     principal_list_1 = []
     interest_list_1 = []
 
     # 2 fusion, lazy, mc
     dart_2 = Dart(init_a, init_f, init_ecm)
-    controller_2 = Controller("busymc")
+    controller_2 = Controller(anal_type, "tb")
     reward_list_2 = []
     principal_list_2 = []
     interest_list_2 = []
@@ -580,3 +597,61 @@ if(exp_type == "tb-anal"):
     print("Dart1 total reward = " + str(total_reward_1) + ", total principal = " + str(total_principal_1) + ", total interest = " + str(total_interest_1))
     print("Dart2 total reward = " + str(total_reward_2) + ", total principal = " + str(total_principal_2) + ", total interest = " + str(total_interest_2))
     
+
+    
+if(exp_type == "ablation"):
+    time_limit = len(env.target)
+    predictor.err_p = 0.15
+    predictor.thres = 0.8
+    predictor.sigma = 0.01
+
+    exp_instance_list = []
+    for i in ["fuse", "latest"]:
+        for j in ["sim", "no-sim"]:
+            for k in ["tb", "no-tb"]:
+                exp_instance = ExpInstance(i,j,k)
+                exp_instance_list.append(exp_instance)
+
+    for t in range(time_limit):
+        print("\ntime: " + str(t))
+        target_list = env.target[t:t+horizon]
+        threat_list = env.threat[t:t+horizon]
+        target_prob_list, threat_prob_list = predictor.getEnvPred2(target_list, threat_list)
+        predictor.storePrediction(target_prob_list, threat_prob_list)
+        fused_target_prob_list, fused_threat_prob_list = predictor.DSPredictionFusion()
+        target,threat = env.getEnvState(t)
+        print("target: " + str(target) + " threat: " + str(threat))
+        for inst in exp_instance_list:
+            inst.printType()
+            inst.dart.CompleteAction()
+
+            if(inst.pred_type == "fuse"):
+                action_list = inst.controller.Control(inst.dart, fused_target_prob_list, fused_threat_prob_list, t)
+            elif(inst.pred_type == "latest"):
+                action_list = inst.controller.Control(inst.dart, target_prob_list, threat_prob_list, t)
+            inst.dart.Adapt(action_list)
+
+            inst.dart.showState()
+            #reward = dart.getMeanReward(target_prob, threat_prob)
+            revenue = inst.dart.getReward(target, threat)
+            principal = inst.dart.getPrincipal(action_list,inst.controller)
+            interest = inst.dart.getInterest()
+            print("Revenue: " + str(revenue) + " Principal: " + str(principal) + " Interest: " + str(interest))
+            inst.revenue_list.append(revenue)
+            inst.principal_list.append(principal)
+            inst.interest_list.append(interest)
+
+    index = 1
+    for inst in exp_instance_list:
+        total_revenue = 0
+        total_principal = 0
+        total_interest = 0
+        for r in inst.revenue_list:
+            total_revenue += r
+        for p in inst.principal_list:
+            total_principal += p
+        for i in inst.interest_list:
+            total_interest += i
+
+        print("Dart" + str(index) + "total revenue = " + str(total_revenue) + ", total principal = " + str(total_principal) + ", total interest = " + str(total_interest))
+        index += 1

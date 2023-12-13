@@ -70,7 +70,7 @@ class Environment:
                         self.target_gen_prob.append(0)
                         self.threat_gen_prob.append(1)
         elif(type == "random-long"):
-            env_file = "random_env_long.txt"
+            env_file = "random_env_longlong.txt"
             with open(env_file, 'r') as efile:
                 env_lines = efile.readlines()
                 target_line = env_lines[0]
