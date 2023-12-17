@@ -189,7 +189,7 @@ def CollectResAll(showfig=True):
         }
         fig = plt.figure(figsize=(9,4))
         ax = fig.add_subplot()
-        fig.subplots_adjust(left=0.1,right=0.95,bottom=0.2)
+        fig.subplots_adjust(left=0.1,right=0.95,bottom=0.23)
         bottom = np.zeros(num)
         width = 0.25
         exp_conf = [0] * 8
@@ -199,7 +199,7 @@ def CollectResAll(showfig=True):
                 for k in ["tb", "no-tb"]:
                     exp_conf[index] = i + "\n" + j + "\n" + k
                     index += 1
-        
+        exp_conf[0] += "\nOurs"
         #label = ("Ours","wo technical debt","wo prediction fusion","wo similarity analysis","rule-base")
         for name, value in util_details.items():
             p = ax.bar(exp_conf, value, width, label=name, bottom=bottom)
@@ -215,7 +215,7 @@ def CollectResAll(showfig=True):
         #labels = ["Ours","wo technical debt","wo prediction fusion","wo similarity analysis","rule-base"]
         fig = plt.figure(figsize=(9,4))
         ax = fig.add_subplot()
-        fig.subplots_adjust(left=0.1,right=0.95,bottom=0.2)
+        fig.subplots_adjust(left=0.1,right=0.95,bottom=0.23)
         bplot1 = ax.boxplot([ut for ut in util],
                      vert=True,  # vertical box alignment
                      patch_artist=True,  # fill with color
@@ -423,7 +423,7 @@ def plotResSimAnal(showFigure = False):
         fig0 = plt.figure()
         ax0 = fig0.add_subplot()
         fig0.subplots_adjust(left=0.15,right=0.95,top=0.9)
-        ax0.set_xlabel("error rate")
+        ax0.set_xlabel("failure rate")
         ax0.set_ylabel("predictor parameters")
         ax0.set_xticks([0,1,2,3,4,5],["0.05","0.1","0.15","0.2","0.25","0.3"])
         ax0.set_yticks([0,1,2,3,4,5],["0.7 0.01","0.8 0.01","0.9 0.01","0.7 0.05","0.8 0.05","0.9 0.05"])
@@ -451,7 +451,7 @@ def plotResSimAnal(showFigure = False):
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(projection='3d')
         fig2.subplots_adjust(left=0,right=0.9,top=0.9,bottom=0.1)
-        ax2.set_xlabel("error rate")
+        ax2.set_xlabel("failure rate")
         ax2.set_ylabel("predictor parameters")
         ax2.set_zlabel("reduced planning ratio")
         ax2.set_yticks([1,2,3,4,5,6],["0.7 0.01","0.8 0.01","0.9 0.01","0.7 0.05","0.8 0.05","0.9 0.05"])
@@ -467,7 +467,7 @@ def plotResSimAnal(showFigure = False):
         fig1 = plt.figure()
         ax1 = fig1.add_subplot()
       
-        ax1.set_xlabel("error rate")
+        ax1.set_xlabel("failure rate")
         ax1.set_ylabel("percentage of decreased utility")
         ax1.set_ylim(0,0.5)
         
@@ -482,7 +482,7 @@ def plotResSimAnal(showFigure = False):
 
         fig2 = plt.figure()
         ax2 = fig2.add_subplot()
-        ax2.set_xlabel("error rate")
+        ax2.set_xlabel("failure rate")
         ax2.set_ylabel("percentage of decreased planning number")
         
         ax2.plot(x, Z_Plan[0], marker="*")
